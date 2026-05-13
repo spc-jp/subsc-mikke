@@ -1,0 +1,485 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  Home, 
+  Calendar as CalendarIcon, 
+  PieChart, 
+  Plus, 
+  Trash2, 
+  X, 
+  AlertCircle,
+  CreditCard,
+  CheckCircle2,
+  TrendingDown,
+  Box
+} from 'lucide-react';
+
+// 初期のモックデータ
+const initialData = [
+  { id: 1, name: 'Netflix', price: 1490, cycle: 'monthly', billingDay: 10, frequency: 'high', domain: 'netflix.com' },
+  { id: 2, name: 'Amazon Prime', price: 600, cycle: 'monthly', billingDay: 15, frequency: 'high', domain: 'amazon.co.jp' },
+  { id: 3, name: 'Claude Pro', price: 3000, cycle: 'monthly', billingDay: 5, frequency: 'high', domain: 'claude.ai' },
+  { id: 4, name: '使っていないフィットネス', price: 1080, cycle: 'monthly', billingDay: 20, frequency: 'low', domain: '' },
+  { id: 5, name: '謎の動画サービス', price: 550, cycle: 'monthly', billingDay: 28, frequency: 'low', domain: '' },
+];
+
+// ファビコン表示用コンポーネント
+const ServiceIcon = ({ name, domain, size = 'w-10 h-10' }) => {
+  const [error, setError] = useState(false);
+
+  if (!domain || error) {
+    return (
+      <div className={`${size} rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200 flex items-center justify-center text-gray-500 font-bold shadow-sm shrink-0`}>
+        {name.charAt(0)}
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} 
+      alt={name}
+      className={`${size} rounded-xl bg-white shadow-sm border border-gray-100 object-cover shrink-0`}
+      onError={() => setError(true)}
+    />
+  );
+};
+
+export default function App() {
+  const [subscriptions, setSubscriptions] = useState(initialData);
+  const [activeTab, setActiveTab] = useState('home'); // home, calendar, analysis
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // --- 計算ロジック ---
+  const { monthlyTotal, yearlyTotal } = useMemo(() => {
+    let monthly = 0;
+    let yearly = 0;
+    subscriptions.forEach(sub => {
+      if (sub.cycle === 'monthly') {
+        monthly += sub.price;
+        yearly += sub.price * 12;
+      } else {
+        yearly += sub.price;
+        monthly += Math.round(sub.price / 12);
+      }
+    });
+    return { monthlyTotal: monthly, yearlyTotal: yearly };
+  }, [subscriptions]);
+
+  const potentialSavings = useMemo(() => {
+    return subscriptions
+      .filter(sub => sub.frequency === 'low')
+      .reduce((acc, sub) => acc + (sub.cycle === 'monthly' ? sub.price : Math.round(sub.price / 12)), 0);
+  }, [subscriptions]);
+
+  // サブスクの削除
+  const handleDelete = (id) => {
+    setSubscriptions(subscriptions.filter(sub => sub.id !== id));
+  };
+
+  // サブスクの追加
+  const handleAdd = (newSub) => {
+    setSubscriptions([...subscriptions, { ...newSub, id: Date.now() }]);
+    setIsAddModalOpen(false);
+  };
+
+  // --- タブコンテンツコンポーネント ---
+
+  // 1. ホームタブ（ダッシュボード）
+  const HomeTab = () => (
+    <div className="p-4 pb-24 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* 合計金額カード */}
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
+        <h2 className="text-blue-100 text-sm font-medium mb-1">今月の支払い予定合計</h2>
+        <div className="flex items-baseline gap-1">
+          <span className="text-4xl font-bold">¥{monthlyTotal.toLocaleString()}</span>
+          <span className="text-blue-200 text-sm">/月</span>
+        </div>
+        <div className="mt-4 pt-4 border-t border-blue-500/30 flex justify-between items-center text-sm">
+          <span className="text-blue-100">年額換算</span>
+          <span className="font-semibold">¥{yearlyTotal.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* 登録済みサービス一覧 */}
+      <div>
+        <h3 className="text-gray-700 font-bold mb-3 flex items-center gap-2">
+          <CreditCard size={18} />
+          登録中のサービス ({subscriptions.length})
+        </h3>
+        <div className="space-y-3">
+          {subscriptions.length === 0 ? (
+            <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              登録されているサービスがありません
+            </div>
+          ) : (
+            subscriptions.map(sub => (
+              <div key={sub.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center group relative overflow-hidden">
+                <div className="flex items-center gap-3">
+                  <ServiceIcon name={sub.name} domain={sub.domain} />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-gray-800">{sub.name}</span>
+                    <span className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      毎月 {sub.billingDay}日 支払い
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <span className="font-bold text-gray-800">¥{sub.price.toLocaleString()}</span>
+                    <span className="text-xs text-gray-500 block">{sub.cycle === 'monthly' ? '/月' : '/年'}</span>
+                  </div>
+                  <button 
+                    onClick={() => handleDelete(sub.id)}
+                    className="p-2 text-red-400 hover:bg-red-50 rounded-full transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // 2. カレンダータブ（支払い予定）
+  const CalendarTab = () => {
+    // 支払い日順にソート
+    const sortedSubs = [...subscriptions].sort((a, b) => a.billingDay - b.billingDay);
+    
+    return (
+      <div className="p-4 pb-24 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <CalendarIcon className="text-blue-600" />
+          今月の支払いスケジュール
+        </h2>
+        
+        <div className="relative border-l-2 border-blue-100 ml-3 space-y-6">
+          {sortedSubs.map((sub, idx) => (
+            <div key={sub.id} className="relative pl-6">
+              {/* Timeline dot */}
+              <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 border-4 border-gray-50 shadow-sm" />
+              
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex gap-3 items-start">
+                    <ServiceIcon name={sub.name} domain={sub.domain} size="w-8 h-8" />
+                    <div>
+                      <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-md mb-1.5">
+                        {sub.billingDay}日
+                      </span>
+                      <h3 className="font-bold text-gray-800 leading-tight">{sub.name}</h3>
+                    </div>
+                  </div>
+                  <span className="font-bold text-gray-800 mt-1">¥{sub.price.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // 3. 分析・診断タブ
+  const AnalysisTab = () => (
+    <div className="p-4 pb-24 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <PieChart className="text-indigo-600" />
+        利用状況の診断
+      </h2>
+
+      {/* 節約提案カード */}
+      {potentialSavings > 0 ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="bg-amber-100 p-2 rounded-full text-amber-600 mt-1">
+              <TrendingDown size={20} />
+            </div>
+            <div>
+              <h3 className="text-amber-800 font-bold mb-1">節約できるかも！</h3>
+              <p className="text-amber-700 text-sm mb-2">
+                あまり使っていないサービスを解約すると、
+              </p>
+              <div className="text-2xl font-black text-amber-600">
+                月々 ¥{potentialSavings.toLocaleString()}
+              </div>
+              <p className="text-amber-700 text-sm mt-1">の節約になります。</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-6 flex items-center gap-3">
+          <CheckCircle2 className="text-green-500" size={24} />
+          <span className="text-green-800 font-medium">すべてのサービスを活用できています！</span>
+        </div>
+      )}
+
+      {/* 利用頻度ごとのリスト */}
+      <div className="space-y-4">
+        <h3 className="font-bold text-gray-700">利用頻度レビュー</h3>
+        
+        {/* あまり使っていない (Low) */}
+        {subscriptions.filter(s => s.frequency === 'low').length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider">見直し推奨 (あまり使っていない)</h4>
+            {subscriptions.filter(s => s.frequency === 'low').map(sub => (
+              <div key={sub.id} className="bg-white p-3 rounded-lg border border-red-100 flex justify-between items-center opacity-80">
+                <div className="flex items-center gap-2.5">
+                  <ServiceIcon name={sub.name} domain={sub.domain} size="w-6 h-6 rounded-md" />
+                  <span className="font-medium text-gray-800">{sub.name}</span>
+                </div>
+                <span className="text-red-600 font-bold">¥{sub.price.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* よく使っている (High) */}
+        <div className="space-y-2 pt-4">
+          <h4 className="text-xs font-bold text-green-600 uppercase tracking-wider">活用中 (よく使っている)</h4>
+          {subscriptions.filter(s => s.frequency === 'high').map(sub => (
+            <div key={sub.id} className="bg-white p-3 rounded-lg border border-gray-100 flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <ServiceIcon name={sub.name} domain={sub.domain} size="w-6 h-6 rounded-md" />
+                <span className="font-medium text-gray-700">{sub.name}</span>
+              </div>
+              <span className="text-gray-500">¥{sub.price.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans sm:bg-gray-200 flex justify-center">
+      {/* スマホ用コンテナ */}
+      <div className="w-full max-w-md bg-gray-50 min-h-screen shadow-2xl relative overflow-hidden flex flex-col">
+        
+        {/* ヘッダー */}
+        <header className="bg-white pt-12 pb-4 px-6 rounded-b-3xl shadow-sm z-10 sticky top-0">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-1.5 rounded-xl shadow-sm">
+              <Box className="text-white" size={22} />
+            </div>
+            <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              サブスクBox
+            </h1>
+          </div>
+          <p className="text-xs text-gray-500 mt-2 ml-1">支出を見える化して賢く管理</p>
+        </header>
+
+        {/* メインコンテンツ */}
+        <main className="flex-1 overflow-y-auto">
+          {activeTab === 'home' && <HomeTab />}
+          {activeTab === 'calendar' && <CalendarTab />}
+          {activeTab === 'analysis' && <AnalysisTab />}
+        </main>
+
+        {/* FAB (Floating Action Button) */}
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="absolute bottom-24 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-600/40 flex items-center justify-center hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all z-20"
+        >
+          <Plus size={28} />
+        </button>
+
+        {/* ボトムナビゲーション */}
+        <nav className="absolute bottom-0 w-full bg-white border-t border-gray-100 pb-safe z-10">
+          <div className="flex justify-around items-center h-16">
+            <button 
+              onClick={() => setActiveTab('home')}
+              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'home' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <Home size={20} className={activeTab === 'home' ? 'fill-blue-50' : ''} />
+              <span className="text-[10px] mt-1 font-medium">ホーム</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('calendar')}
+              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'calendar' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <CalendarIcon size={20} className={activeTab === 'calendar' ? 'fill-blue-50' : ''} />
+              <span className="text-[10px] mt-1 font-medium">カレンダー</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('analysis')}
+              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === 'analysis' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <PieChart size={20} className={activeTab === 'analysis' ? 'fill-blue-50' : ''} />
+              <span className="text-[10px] mt-1 font-medium">診断</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* 追加モーダル */}
+        {isAddModalOpen && (
+          <AddSubscriptionModal 
+            onClose={() => setIsAddModalOpen(false)} 
+            onAdd={handleAdd} 
+          />
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// サブスク追加用モーダルコンポーネント
+function AddSubscriptionModal({ onClose, onAdd }) {
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [billingDay, setBillingDay] = useState(1);
+  const [frequency, setFrequency] = useState('high');
+  const [url, setUrl] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name || !price) return;
+    
+    // URL文字列からホスト名(ドメイン)を抽出
+    let domain = '';
+    if (url) {
+      try {
+        const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+        domain = urlObj.hostname;
+      } catch (e) {
+        console.error("Invalid URL");
+      }
+    }
+    
+    onAdd({
+      name,
+      price: parseInt(price, 10),
+      cycle: 'monthly',
+      billingDay: parseInt(billingDay, 10),
+      frequency,
+      domain
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom-8 duration-300 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+          <h2 className="text-lg font-bold text-gray-800">新しく登録する</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          {/* サービス名 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">サービス名</label>
+            <input 
+              type="text" 
+              required
+              placeholder="例: Netflix, ジム" 
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          {/* 公式サイトURL（アイコン取得用） */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+              <span>公式サイトのURL</span>
+              <span className="text-gray-400 text-xs">任意</span>
+            </label>
+            <input 
+              type="text" 
+              placeholder="例: netflix.com" 
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-sm"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <p className="text-xs text-gray-400 mt-1">入力するとアプリのアイコンが表示されます</p>
+          </div>
+
+          {/* 月額料金 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">月額料金 (円)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
+              <input 
+                type="number" 
+                required
+                min="0"
+                placeholder="1000" 
+                className="w-full p-3 pl-8 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* 毎月の支払い日 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">毎月の支払い日</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                required
+                min="1" max="31"
+                className="w-24 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-center"
+                value={billingDay}
+                onChange={(e) => setBillingDay(e.target.value)}
+              />
+              <span className="text-gray-600 font-medium">日</span>
+            </div>
+          </div>
+
+          {/* 利用頻度（診断用） */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <AlertCircle size={14} className="text-indigo-500" />
+              最近、どのくらい使ってますか？
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setFrequency('high')}
+                className={`p-2 rounded-xl text-sm font-medium border transition-all ${
+                  frequency === 'high' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                よく使う
+              </button>
+              <button
+                type="button"
+                onClick={() => setFrequency('medium')}
+                className={`p-2 rounded-xl text-sm font-medium border transition-all ${
+                  frequency === 'medium' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                たまに
+              </button>
+              <button
+                type="button"
+                onClick={() => setFrequency('low')}
+                className={`p-2 rounded-xl text-sm font-medium border transition-all ${
+                  frequency === 'low' ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                ほぼ使ってない
+              </button>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="pt-4">
+            <button 
+              type="submit"
+              className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              登録する
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
