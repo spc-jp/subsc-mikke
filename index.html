@@ -6,8 +6,8 @@
   <title>サブスクBox</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons (UMD版を明示指定：短縮URLだとESM版が返って動作しない問題対策) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     /* iOSセーフエリア対応とアニメーション用 */
     .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
@@ -20,18 +20,22 @@
     .modal-content-enter { animation: slideUp 0.3s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    
+
     /* スクロールバー非表示（スッキリ見せるため） */
     ::-webkit-scrollbar { display: none; }
+
+    /* カレンダー：日付セル共通サイズ確保 */
+    .cal-cell { height: 64px; }
+    .cal-day-label { height: 22px; }
   </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans sm:bg-gray-200 flex justify-center text-gray-800">
 
   <!-- スマホ用コンテナ -->
   <div class="w-full max-w-md bg-gray-50 min-h-screen shadow-2xl relative overflow-hidden flex flex-col">
-    
-    <!-- ヘッダー -->
-    <header class="bg-white pt-12 pb-4 px-6 rounded-b-3xl shadow-sm z-10 sticky top-0 relative">
+
+    <!-- ヘッダー（sticky と relative の競合を解消：sticky のみに） -->
+    <header class="bg-white pt-12 pb-4 px-6 rounded-b-3xl shadow-sm z-10 sticky top-0">
       <div class="flex items-center gap-2.5">
         <div class="bg-gradient-to-br from-gray-800 to-black p-1.5 rounded-xl shadow-sm">
           <i data-lucide="box" class="text-white w-5 h-5"></i>
@@ -48,9 +52,12 @@
       <!-- コンテンツはJSでレンダリングされます -->
     </main>
 
-    <!-- 追加ボタン (FAB) -->
+    <!-- 追加ボタン (FAB) - 「+」はSVG直書きでLucide非依存に -->
     <button onclick="openModal()" class="absolute bottom-24 right-6 w-14 h-14 bg-gray-900 text-white rounded-full shadow-xl shadow-gray-900/30 flex items-center justify-center hover:bg-black hover:scale-105 active:scale-95 transition-all z-20">
-      <i data-lucide="plus" class="w-7 h-7"></i>
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14"/>
+        <path d="M12 5v14"/>
+      </svg>
     </button>
 
     <!-- ボトムナビゲーション -->
@@ -80,7 +87,7 @@
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
-        
+
         <form id="add-form" onsubmit="handleAdd(event)" class="p-5 space-y-5 pb-8">
           <!-- サービス名 -->
           <div>
@@ -88,9 +95,9 @@
             <input type="text" id="input-name" required placeholder="例: Netflix, ジム" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:outline-none transition-all">
           </div>
 
-          <!-- 公式サイトURL -->
+          <!-- 公式サイトURL（block と flex の競合を解消：flex のみに） -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+            <label class="flex justify-between text-sm font-medium text-gray-700 mb-1">
               <span>公式サイトのURL</span>
               <span class="text-gray-400 text-xs">任意</span>
             </label>
@@ -116,9 +123,9 @@
             </div>
           </div>
 
-          <!-- 利用頻度 -->
+          <!-- 利用頻度（block と flex の競合を解消：flex のみに） -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+            <label class="flex items-center gap-1 text-sm font-medium text-gray-700 mb-2">
               <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-gray-500"></i>
               最近、どのくらい使ってますか？
             </label>
@@ -143,7 +150,6 @@
 
   <script>
     // --- 状態管理 ---
-    // スクショ画像に近づけるための初期モックデータ
     let subscriptions = [
       { id: 1, name: 'iCloud+', price: 400, cycle: 'monthly', billingDay: 3, frequency: 'high', domain: 'apple.com' },
       { id: 2, name: 'X Premium', price: 980, cycle: 'monthly', billingDay: 6, frequency: 'high', domain: 'x.com' },
@@ -153,17 +159,26 @@
       { id: 6, name: 'ChatGPT Plus', price: 3000, cycle: 'monthly', billingDay: 23, frequency: 'high', domain: 'openai.com' },
       { id: 7, name: 'Claude Pro', price: 3000, cycle: 'monthly', billingDay: 24, frequency: 'high', domain: 'claude.ai' }
     ];
-    let activeTab = 'home'; // デフォルトはホーム
-    
+    let activeTab = 'home';
+
     // カレンダー用の状態
     const today = new Date();
     let currentYear = today.getFullYear();
-    let currentMonth = today.getMonth(); // 0: 1月, 11: 12月
+    let currentMonth = today.getMonth();
+
+    // HTMLエスケープ（onerror等で文字列に埋め込む値の安全化）
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
     // 初期化
     document.addEventListener("DOMContentLoaded", () => {
-      // スクショの雰囲気に合わせるため、開いた瞬間カレンダータブにする場合はここを変更
-      activeTab = 'calendar'; 
+      activeTab = 'calendar';
       render();
     });
 
@@ -192,30 +207,50 @@
     // --- レンダリング処理 ---
     function render() {
       const main = document.getElementById('main-content');
-      
+
       if (activeTab === 'home') main.innerHTML = getHomeHTML();
       else if (activeTab === 'calendar') main.innerHTML = getCalendarHTML();
       else if (activeTab === 'analysis') main.innerHTML = getAnalysisHTML();
 
-      // ナビゲーションの見た目を更新
       updateTabStyles();
-      // アイコンを再生成
-      lucide.createIcons();
+      // Lucideアイコン生成（ライブラリが未読込でもアプリ全体は止めない）
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      } else {
+        console.warn('Lucide library not loaded. Icons will not render.');
+      }
     }
 
-    // アイコン生成ヘルパー
+    // アイコン生成ヘルパー（エスケープ強化）
     function getServiceIconHTML(name, domain, sizeClass = 'w-10 h-10', customClass = '') {
-      const fallbackHTML = `<div class="${sizeClass} ${customClass} bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-100 flex items-center justify-center text-gray-500 font-bold shadow-sm shrink-0 text-xs">${name.charAt(0)}</div>`;
+      const safeName = escapeHtml(name);
+      const initial = escapeHtml(String(name || '?').charAt(0));
+      const fallbackHTML = `<div class="${sizeClass} ${customClass} bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-100 flex items-center justify-center text-gray-500 font-bold shadow-sm shrink-0 text-xs">${initial}</div>`;
+
       if (!domain) return fallbackHTML;
-      
-      const errorAction = `this.onerror=null; this.outerHTML='${fallbackHTML}';`;
-      return `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=128" alt="${name}" class="${sizeClass} ${customClass} bg-white shadow-sm border border-gray-100 object-cover shrink-0" onerror="${errorAction}">`;
+
+      // onerrorに直接outerHTMLを書くと文字列エスケープが壊れやすいので、
+      // data-fallback属性に格納して関数経由で差し替える方式に変更
+      const safeDomain = escapeHtml(domain);
+      const fallbackEscaped = fallbackHTML.replace(/"/g, '&quot;');
+      return `<img src="https://www.google.com/s2/favicons?domain=${safeDomain}&sz=128" alt="${safeName}" class="${sizeClass} ${customClass} bg-white shadow-sm border border-gray-100 object-cover shrink-0" data-fallback="${fallbackEscaped}" onerror="handleIconError(this)">`;
+    }
+
+    // アイコン読み込み失敗時の処理
+    function handleIconError(imgEl) {
+      imgEl.onerror = null;
+      const fb = imgEl.getAttribute('data-fallback');
+      if (fb) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = fb;
+        if (tmp.firstChild) imgEl.replaceWith(tmp.firstChild);
+      }
     }
 
     // 1. ホームタブHTML生成
     function getHomeHTML() {
       const { monthlyTotal, yearlyTotal } = getTotals();
-      
+
       let listHTML = '';
       if (subscriptions.length === 0) {
         listHTML = `<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">登録されているサービスがありません</div>`;
@@ -225,7 +260,7 @@
             <div class="flex items-center gap-3">
               ${getServiceIconHTML(sub.name, sub.domain, 'w-10 h-10', 'rounded-xl')}
               <div class="flex flex-col">
-                <span class="font-bold text-gray-800">${sub.name}</span>
+                <span class="font-bold text-gray-800">${escapeHtml(sub.name)}</span>
                 <span class="text-xs text-gray-500 mt-0.5 flex items-center gap-1 font-medium">毎月 ${sub.billingDay}日 支払い</span>
               </div>
             </div>
@@ -245,9 +280,7 @@
       return `
         <div class="p-4 space-y-6 pb-28 fade-in-up">
           <div class="bg-gray-900 rounded-3xl p-7 text-white shadow-xl shadow-gray-900/20 relative overflow-hidden">
-            <!-- ちょっとした背景装飾 -->
             <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-            
             <h2 class="text-gray-300 text-sm font-medium mb-1 relative z-10">今月の支払い予定合計</h2>
             <div class="flex items-baseline gap-1 relative z-10">
               <span class="text-4xl font-bold tracking-tight">¥${monthlyTotal.toLocaleString()}</span>
@@ -268,72 +301,96 @@
       `;
     }
 
-    // 2. カレンダータブHTML生成 (スクショ再現版)
+    // 2. カレンダータブHTML生成（表示改善版）
     function getCalendarHTML() {
       const { monthlyTotal } = getTotals();
       const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-      const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0: Sun, 1: Mon...
+      const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+
+      // 曜日ヘッダー（土日に色を付けてカレンダーらしく）
+      const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
 
       let html = `
         <div class="bg-white min-h-full pb-28 fade-in-up">
           <!-- カレンダーヘッダー -->
-          <div class="flex justify-between items-center px-6 pt-6 pb-4">
-            <button onclick="changeMonth(-1)" class="p-2 text-gray-400 hover:bg-gray-50 rounded-full transition-colors -ml-2">
+          <div class="flex justify-between items-center px-6 pt-6 pb-3">
+            <button onclick="changeMonth(-1)" class="p-2 text-gray-500 hover:bg-gray-50 rounded-full transition-colors -ml-2">
               <i data-lucide="chevron-left" class="w-5 h-5"></i>
             </button>
             <h2 class="text-[17px] font-bold text-gray-900 tracking-tight">
               ${currentYear}年${currentMonth + 1}月
             </h2>
-            <button onclick="changeMonth(1)" class="p-2 text-gray-400 hover:bg-gray-50 rounded-full transition-colors -mr-2">
+            <button onclick="changeMonth(1)" class="p-2 text-gray-500 hover:bg-gray-50 rounded-full transition-colors -mr-2">
               <i data-lucide="chevron-right" class="w-5 h-5"></i>
             </button>
           </div>
 
-          <!-- カレンダーグリッド (罫線なし) -->
-          <div class="px-5 mb-2">
-            <!-- 曜日 -->
-            <div class="grid grid-cols-7 mb-4">
-              ${['日', '月', '火', '水', '木', '金', '土'].map((d, i) => 
-                `<div class="text-center text-[10px] font-bold ${i === 0 || i === 6 ? 'text-gray-400' : 'text-gray-400'}">${d}</div>`
-              ).join('')}
+          <!-- カレンダーグリッド -->
+          <div class="px-4 mb-2">
+            <!-- 曜日ヘッダー -->
+            <div class="grid grid-cols-7 mb-2">
+              ${dayLabels.map((d, i) => {
+                const color = i === 0 ? 'text-red-400' : (i === 6 ? 'text-blue-400' : 'text-gray-500');
+                return `<div class="text-center text-[11px] font-bold py-1 ${color}">${d}</div>`;
+              }).join('')}
             </div>
-            
+
             <!-- 日付セル -->
-            <div class="grid grid-cols-7 gap-y-5 gap-x-1">
+            <div class="grid grid-cols-7 gap-y-1">
       `;
 
       // 空白セル（月のはじめ）
       for (let i = 0; i < firstDayOfWeek; i++) {
-        html += `<div></div>`;
+        html += `<div class="cal-cell"></div>`;
       }
 
       // 日付セル
       for (let day = 1; day <= daysInMonth; day++) {
-        // その日に支払うサブスクを取得
         const subsToday = subscriptions.filter(s => s.billingDay === day);
-        
-        let subsHtml = '';
-        if (subsToday.length > 0) {
-          // スクショのようにアイコンを中央に大きく表示
-          subsHtml = `<div class="relative mt-0.5 flex justify-center">` + 
-            getServiceIconHTML(subsToday[0].name, subsToday[0].domain, 'w-8 h-8', 'rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)]') +
-            (subsToday.length > 1 ? `<div class="absolute -top-1.5 -right-1.5 bg-gray-900 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">${subsToday.length}</div>` : '') +
-          `</div>`;
+        const dayOfWeek = (firstDayOfWeek + day - 1) % 7;
+        const isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
+
+        // 日付ラベルの色決定
+        let dayTextClass;
+        if (isToday) {
+          dayTextClass = 'bg-gray-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold';
+        } else if (subsToday.length > 0) {
+          dayTextClass = 'text-gray-900 text-xs font-bold';
+        } else if (dayOfWeek === 0) {
+          dayTextClass = 'text-red-300 text-xs font-medium';
+        } else if (dayOfWeek === 6) {
+          dayTextClass = 'text-blue-300 text-xs font-medium';
         } else {
-          // 何もない日はスペースだけ確保
+          dayTextClass = 'text-gray-300 text-xs font-medium';
+        }
+
+        // アイコン表示エリア
+        let subsHtml = '';
+        if (subsToday.length === 1) {
+          // 1件：通常表示
+          subsHtml = `
+            <div class="flex justify-center">
+              ${getServiceIconHTML(subsToday[0].name, subsToday[0].domain, 'w-8 h-8', 'rounded-[10px] shadow-[0_2px_6px_rgba(0,0,0,0.08)]')}
+            </div>
+          `;
+        } else if (subsToday.length >= 2) {
+          // 2件以上：アイコン＋件数バッジ
+          subsHtml = `
+            <div class="relative flex justify-center">
+              ${getServiceIconHTML(subsToday[0].name, subsToday[0].domain, 'w-8 h-8', 'rounded-[10px] shadow-[0_2px_6px_rgba(0,0,0,0.08)]')}
+              <div class="absolute -top-1 -right-1 bg-gray-900 text-white text-[9px] font-bold min-w-[16px] h-[16px] px-1 rounded-full flex items-center justify-center border-2 border-white">+${subsToday.length - 1}</div>
+            </div>
+          `;
+        } else {
+          // 0件：高さだけ確保
           subsHtml = `<div class="w-8 h-8"></div>`;
         }
 
-        const isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
-        
-        // 日付のスタイル（今日の場合は青丸などにするか、スクショはシンプル）
-        const dayClass = isToday 
-          ? 'bg-gray-900 text-white w-5 h-5 rounded-full flex items-center justify-center -mt-0.5 mb-0.5 mx-auto' 
-          : (subsToday.length > 0 ? 'text-gray-800' : 'text-gray-300');
-
         html += `
-          <div class="flex flex-col items-center relative h-14 cursor-pointer hover:bg-gray-50/50 rounded-xl transition-colors">
-            <span class="text-[11px] font-bold leading-none ${isToday ? '' : 'mb-1.5'} ${dayClass}">${day}</span>
+          <div class="cal-cell flex flex-col items-center pt-1.5">
+            <div class="cal-day-label flex items-center justify-center mb-1">
+              <span class="${dayTextClass}">${day}</span>
+            </div>
             ${subsHtml}
           </div>
         `;
@@ -343,39 +400,39 @@
       const totalCells = firstDayOfWeek + daysInMonth;
       const remainingCells = (7 - (totalCells % 7)) % 7;
       for (let i = 0; i < remainingCells; i++) {
-        html += `<div></div>`;
+        html += `<div class="cal-cell"></div>`;
       }
 
       html += `
             </div>
           </div>
-          
-          <!-- 詳細リスト (スクショ再現) -->
-          <div class="mt-8">
-            <div class="px-6 mb-5">
-              <p class="text-[11px] text-gray-400 font-bold mb-4">${currentMonth + 1}月の支払い予定 (${subscriptions.length}件)</p>
-              
-              <div class="flex justify-between items-baseline mb-2">
-                <span class="font-bold text-gray-900 text-[13px]">${currentMonth + 1}月の合計</span>
-                <span class="font-bold text-xl tracking-tight text-gray-900">¥${monthlyTotal.toLocaleString()}</span>
-              </div>
-            </div>
 
-            <!-- リストアイテム -->
+          <!-- 月合計 -->
+          <div class="mt-6 mx-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl">
+            <div class="flex justify-between items-baseline">
+              <div>
+                <p class="text-[11px] text-gray-500 font-bold mb-1">${currentMonth + 1}月の支払い予定 (${subscriptions.length}件)</p>
+                <span class="font-bold text-gray-900 text-sm">${currentMonth + 1}月の合計</span>
+              </div>
+              <span class="font-black text-2xl tracking-tight text-gray-900">¥${monthlyTotal.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <!-- 支払い予定リスト -->
+          <div class="mt-4">
             <div class="space-y-0">
       `;
 
-      // 日付順のリスト表示
       const sortedSubs = [...subscriptions].sort((a, b) => a.billingDay - b.billingDay);
       if (sortedSubs.length === 0) {
         html += `<div class="text-center py-10 text-gray-400 text-sm font-medium">予定はありません</div>`;
       } else {
         html += sortedSubs.map(sub => `
-          <div class="flex justify-between items-center py-3.5 px-6 border-t border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group">
+          <div class="flex justify-between items-center py-3.5 px-6 border-t border-gray-50 hover:bg-gray-50 transition-colors group">
             <div class="flex items-center gap-4">
-              <span class="text-[11px] font-bold text-gray-400 w-5 tracking-tighter">${currentMonth + 1}/${sub.billingDay}</span>
+              <span class="text-[11px] font-bold text-gray-400 w-8 tracking-tighter">${currentMonth + 1}/${sub.billingDay}</span>
               ${getServiceIconHTML(sub.name, sub.domain, 'w-[34px] h-[34px]', 'rounded-[10px]')}
-              <span class="font-bold text-gray-900 text-[13px]">${sub.name}</span>
+              <span class="font-bold text-gray-900 text-[13px]">${escapeHtml(sub.name)}</span>
             </div>
             <div class="flex items-center gap-2">
               <span class="font-medium text-gray-600 text-[13px]">¥${sub.price.toLocaleString()}</span>
@@ -429,7 +486,7 @@
             <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-red-50 flex justify-between items-center opacity-90">
               <div class="flex items-center gap-3">
                 ${getServiceIconHTML(sub.name, sub.domain, 'w-8 h-8', 'rounded-[10px]')}
-                <span class="font-bold text-gray-800 text-sm">${sub.name}</span>
+                <span class="font-bold text-gray-800 text-sm">${escapeHtml(sub.name)}</span>
               </div>
               <span class="text-red-500 font-bold text-sm">¥${sub.price.toLocaleString()}</span>
             </div>
@@ -443,7 +500,7 @@
             <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
               <div class="flex items-center gap-3">
                 ${getServiceIconHTML(sub.name, sub.domain, 'w-8 h-8', 'rounded-[10px]')}
-                <span class="font-bold text-gray-700 text-sm">${sub.name}</span>
+                <span class="font-bold text-gray-700 text-sm">${escapeHtml(sub.name)}</span>
               </div>
               <span class="text-gray-500 font-medium text-sm">¥${sub.price.toLocaleString()}</span>
             </div>
@@ -467,7 +524,7 @@
       activeTab = tab;
       render();
     }
-    
+
     function changeMonth(delta) {
       currentMonth += delta;
       if (currentMonth < 0) {
@@ -484,6 +541,7 @@
       const tabs = ['home', 'calendar', 'analysis'];
       tabs.forEach(t => {
         const el = document.getElementById(`tab-${t}`);
+        if (!el) return;
         if (t === activeTab) {
           el.className = 'flex flex-col items-center justify-center w-full h-full transition-colors text-gray-900';
         } else {
@@ -501,36 +559,34 @@
 
     // --- モーダル・フォームロジック ---
     function openModal() {
-      document.getElementById('add-modal').classList.remove('hidden');
-      document.getElementById('add-modal').classList.add('modal-enter');
+      const modal = document.getElementById('add-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('modal-enter');
     }
 
     function closeModal() {
-      document.getElementById('add-modal').classList.add('hidden');
-      document.getElementById('add-modal').classList.remove('modal-enter');
+      const modal = document.getElementById('add-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('modal-enter');
       document.getElementById('add-form').reset();
-      setFrequency('high'); // フォーム初期化
+      setFrequency('high');
     }
 
     function setFrequency(freq) {
       document.getElementById('input-frequency').value = freq;
-      
-      const styles = {
-        high: { active: 'bg-gray-900 border-gray-900 text-white', inactive: 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50' },
-        medium: { active: 'bg-gray-900 border-gray-900 text-white', inactive: 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50' },
-        low: { active: 'bg-gray-900 border-gray-900 text-white', inactive: 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50' }
-      };
 
-      const freqs = ['high', 'medium', 'low'];
-      freqs.forEach(f => {
+      const activeClass = 'bg-gray-900 border-gray-900 text-white';
+      const inactiveClass = 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50';
+
+      ['high', 'medium', 'low'].forEach(f => {
         const btn = document.getElementById(`btn-freq-${f}`);
-        btn.className = `p-2 rounded-xl text-sm font-medium border transition-all ${f === freq ? styles[f].active : styles[f].inactive}`;
+        btn.className = `p-2 rounded-xl text-sm font-medium border transition-all ${f === freq ? activeClass : inactiveClass}`;
       });
     }
 
     function handleAdd(e) {
       e.preventDefault();
-      
+
       const name = document.getElementById('input-name').value;
       const url = document.getElementById('input-url').value;
       const price = parseInt(document.getElementById('input-price').value, 10);
