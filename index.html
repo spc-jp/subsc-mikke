@@ -3,13 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>サブスクBox</title>
-  <!-- Tailwind CSS -->
+  <title>サブスクみっけ</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons (UMD版を明示指定：短縮URLだとESM版が返って動作しない問題対策) -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
-    /* iOSセーフエリア対応とアニメーション用 */
     .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     .fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
     @keyframes fadeInUp {
@@ -21,64 +18,81 @@
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* スクロールバー非表示（スッキリ見せるため） */
     ::-webkit-scrollbar { display: none; }
 
-    /* カレンダー：日付セル共通サイズ確保 */
-    .cal-cell { height: 64px; }
-    .cal-day-label { height: 22px; }
+    /* SPCブランドカラー */
+    .bg-spc-navy { background-color: #223670; }
+    .bg-spc-navy-dark { background-color: #1a2a5a; }
+    .text-spc-navy { color: #223670; }
+    .text-spc-gold { color: #D0A900; }
+    .border-spc-navy { border-color: #223670; }
+    .shadow-spc { box-shadow: 0 10px 25px -5px rgba(34, 54, 112, 0.25); }
+    .ring-spc-navy:focus { --tw-ring-color: #223670; }
+
+    /* カレンダー */
+    .cal-cell { height: 72px; }
+    .cal-day-label { height: 24px; }
+
+    /* AI診断ローディングスピナー */
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* AI診断結果テキスト */
+    .ai-result-text { white-space: pre-wrap; line-height: 1.7; }
   </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans sm:bg-gray-200 flex justify-center text-gray-800">
 
-  <!-- スマホ用コンテナ -->
   <div class="w-full max-w-md bg-gray-50 min-h-screen shadow-2xl relative overflow-hidden flex flex-col">
 
-    <!-- ヘッダー（sticky と relative の競合を解消：sticky のみに） -->
+    <!-- ヘッダー -->
     <header class="bg-white pt-12 pb-4 px-6 rounded-b-3xl shadow-sm z-10 sticky top-0">
       <div class="flex items-center gap-2.5">
-        <div class="bg-gradient-to-br from-gray-800 to-black p-1.5 rounded-xl shadow-sm">
-          <i data-lucide="box" class="text-white w-5 h-5"></i>
+        <div class="bg-spc-navy p-2 rounded-xl shadow-sm">
+          <i data-lucide="search" class="text-white w-5 h-5"></i>
         </div>
         <h1 class="text-2xl font-black text-gray-900 tracking-tight">
-          サブスクBox
+          サブスクみっけ
         </h1>
       </div>
-      <p class="text-xs text-gray-500 mt-2 ml-1 font-medium">支出を見える化して賢く管理</p>
+      <p class="text-[13px] text-gray-500 mt-2 ml-1 font-medium">ムダなサブスクをみっけて、賢く節約</p>
     </header>
 
-    <!-- メインコンテンツ領域 -->
-    <main id="main-content" class="flex-1 overflow-y-auto relative">
-      <!-- コンテンツはJSでレンダリングされます -->
-    </main>
+    <main id="main-content" class="flex-1 overflow-y-auto relative"></main>
 
-    <!-- 追加ボタン (FAB) - 「+」はSVG直書きでLucide非依存に -->
-    <button onclick="openModal()" class="absolute bottom-24 right-6 w-14 h-14 bg-gray-900 text-white rounded-full shadow-xl shadow-gray-900/30 flex items-center justify-center hover:bg-black hover:scale-105 active:scale-95 transition-all z-20">
+    <!-- FAB -->
+    <button onclick="openModal()" class="absolute bottom-24 right-6 w-14 h-14 bg-spc-navy text-white rounded-full shadow-xl shadow-spc flex items-center justify-center hover:bg-spc-navy-dark hover:scale-105 active:scale-95 transition-all z-20">
       <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 12h14"/>
-        <path d="M12 5v14"/>
+        <path d="M5 12h14"/><path d="M12 5v14"/>
       </svg>
     </button>
 
-    <!-- ボトムナビゲーション -->
-    <nav class="absolute bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 pb-safe z-10">
+    <!-- ボトムナビ -->
+    <nav class="absolute bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-10">
       <div class="flex justify-around items-center h-16">
-        <button onclick="switchTab('home')" id="tab-home" class="flex flex-col items-center justify-center w-full h-full transition-colors text-gray-900">
-          <i data-lucide="home" class="w-5 h-5 mb-1" id="icon-home"></i>
-          <span class="text-[10px] font-medium">ホーム</span>
+        <button onclick="switchTab('home')" id="tab-home" class="flex flex-col items-center justify-center w-full h-full transition-colors text-spc-navy">
+          <i data-lucide="home" class="w-[22px] h-[22px] mb-1"></i>
+          <span class="text-[11px] font-bold">ホーム</span>
         </button>
         <button onclick="switchTab('calendar')" id="tab-calendar" class="flex flex-col items-center justify-center w-full h-full transition-colors text-gray-400 hover:text-gray-600">
-          <i data-lucide="calendar" class="w-5 h-5 mb-1" id="icon-calendar"></i>
-          <span class="text-[10px] font-medium">カレンダー</span>
+          <i data-lucide="calendar" class="w-[22px] h-[22px] mb-1"></i>
+          <span class="text-[11px] font-bold">カレンダー</span>
         </button>
         <button onclick="switchTab('analysis')" id="tab-analysis" class="flex flex-col items-center justify-center w-full h-full transition-colors text-gray-400 hover:text-gray-600">
-          <i data-lucide="pie-chart" class="w-5 h-5 mb-1" id="icon-analysis"></i>
-          <span class="text-[10px] font-medium">診断</span>
+          <i data-lucide="sparkles" class="w-[22px] h-[22px] mb-1"></i>
+          <span class="text-[11px] font-bold">AI診断</span>
         </button>
       </div>
     </nav>
 
-    <!-- サブスク追加用モーダル (初期非表示) -->
+    <!-- 追加モーダル -->
     <div id="add-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
       <div class="modal-content-enter w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
@@ -89,57 +103,51 @@
         </div>
 
         <form id="add-form" onsubmit="handleAdd(event)" class="p-5 space-y-5 pb-8">
-          <!-- サービス名 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">サービス名</label>
-            <input type="text" id="input-name" required placeholder="例: Netflix, ジム" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:outline-none transition-all">
+            <label class="block text-sm font-bold text-gray-700 mb-1.5">サービス名</label>
+            <input type="text" id="input-name" required placeholder="例: Netflix、ジム、新聞" class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:outline-none transition-all text-base ring-spc-navy">
           </div>
 
-          <!-- 公式サイトURL（block と flex の競合を解消：flex のみに） -->
           <div>
-            <label class="flex justify-between text-sm font-medium text-gray-700 mb-1">
+            <label class="flex justify-between text-sm font-bold text-gray-700 mb-1.5">
               <span>公式サイトのURL</span>
-              <span class="text-gray-400 text-xs">任意</span>
+              <span class="text-gray-400 text-xs font-medium">任意</span>
             </label>
-            <input type="text" id="input-url" placeholder="例: netflix.com" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:outline-none transition-all text-sm">
-            <p class="text-xs text-gray-400 mt-1">入力するとアプリのアイコンが表示されます</p>
+            <input type="text" id="input-url" placeholder="例: netflix.com" class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:outline-none transition-all text-sm ring-spc-navy">
+            <p class="text-xs text-gray-500 mt-1.5">入力するとアプリのアイコンが表示されます</p>
           </div>
 
-          <!-- 月額料金 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">月額料金 (円)</label>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5">月額料金 (円)</label>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
-              <input type="number" id="input-price" required min="0" placeholder="1000" class="w-full p-3 pl-8 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:outline-none transition-all">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-lg">¥</span>
+              <input type="number" id="input-price" required min="0" placeholder="1000" class="w-full p-3.5 pl-9 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:outline-none transition-all text-base ring-spc-navy">
             </div>
           </div>
 
-          <!-- 毎月の支払い日 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">毎月の支払い日</label>
+            <label class="block text-sm font-bold text-gray-700 mb-1.5">毎月の支払い日</label>
             <div class="flex items-center gap-2">
-              <input type="number" id="input-billing-day" required min="1" max="31" value="1" class="w-24 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:outline-none transition-all text-center">
+              <input type="number" id="input-billing-day" required min="1" max="31" value="1" class="w-28 p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:outline-none transition-all text-center text-base font-bold ring-spc-navy">
               <span class="text-gray-600 font-medium">日</span>
             </div>
           </div>
 
-          <!-- 利用頻度（block と flex の競合を解消：flex のみに） -->
           <div>
-            <label class="flex items-center gap-1 text-sm font-medium text-gray-700 mb-2">
-              <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-gray-500"></i>
+            <label class="flex items-center gap-1 text-sm font-bold text-gray-700 mb-2">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-gray-500"></i>
               最近、どのくらい使ってますか？
             </label>
             <input type="hidden" id="input-frequency" value="high">
             <div class="grid grid-cols-3 gap-2" id="freq-buttons">
-              <button type="button" onclick="setFrequency('high')" id="btn-freq-high" class="p-2 rounded-xl text-sm font-medium border transition-all bg-gray-900 border-gray-900 text-white">よく使う</button>
-              <button type="button" onclick="setFrequency('medium')" id="btn-freq-medium" class="p-2 rounded-xl text-sm font-medium border transition-all bg-white border-gray-200 text-gray-600 hover:bg-gray-50">たまに</button>
-              <button type="button" onclick="setFrequency('low')" id="btn-freq-low" class="p-2 rounded-xl text-sm font-medium border transition-all bg-white border-gray-200 text-gray-600 hover:bg-gray-50">ほぼ使ってない</button>
+              <button type="button" onclick="setFrequency('high')" id="btn-freq-high" class="p-2.5 rounded-xl text-sm font-bold border transition-all bg-spc-navy border-spc-navy text-white">よく使う</button>
+              <button type="button" onclick="setFrequency('medium')" id="btn-freq-medium" class="p-2.5 rounded-xl text-sm font-bold border transition-all bg-white border-gray-200 text-gray-600 hover:bg-gray-50">たまに</button>
+              <button type="button" onclick="setFrequency('low')" id="btn-freq-low" class="p-2.5 rounded-xl text-sm font-bold border transition-all bg-white border-gray-200 text-gray-600 hover:bg-gray-50">ほぼ使ってない</button>
             </div>
           </div>
 
-          <!-- 送信ボタン -->
           <div class="pt-4">
-            <button type="submit" class="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-black active:scale-95 transition-all">
+            <button type="submit" class="w-full bg-spc-navy text-white font-bold py-4 rounded-xl shadow-lg hover:bg-spc-navy-dark active:scale-95 transition-all text-base">
               登録する
             </button>
           </div>
@@ -149,8 +157,21 @@
   </div>
 
   <script>
-    // --- 状態管理 ---
-    let subscriptions = [
+    // ========================================
+    // ★★★ 設定エリア（デプロイ時に必ず変更）★★★
+    // ========================================
+    const WORKER_URL = 'https://YOUR-WORKER-NAME.YOUR-ACCOUNT.workers.dev'; // ← Cloudflare WorkerのURLに差し替え
+    const PRO_PASSWORD = 'mikke2026';                                       // ← Pro版パスワード（購入者に配布）
+    const FREE_LIMIT = 3;                                                   // ← 無料診断回数
+    // ========================================
+
+    // localStorage キー
+    const STORAGE_KEY = 'subsc_mikke_data_v1';
+    const AI_COUNT_KEY = 'subsc_mikke_ai_count';
+    const PRO_KEY = 'subsc_mikke_pro';
+
+    // 初期デモデータ
+    const DEFAULT_DATA = [
       { id: 1, name: 'iCloud+', price: 400, cycle: 'monthly', billingDay: 3, frequency: 'high', domain: 'apple.com' },
       { id: 2, name: 'X Premium', price: 980, cycle: 'monthly', billingDay: 6, frequency: 'high', domain: 'x.com' },
       { id: 3, name: 'Netflix', price: 1590, cycle: 'monthly', billingDay: 10, frequency: 'high', domain: 'netflix.com' },
@@ -159,14 +180,119 @@
       { id: 6, name: 'ChatGPT Plus', price: 3000, cycle: 'monthly', billingDay: 23, frequency: 'high', domain: 'openai.com' },
       { id: 7, name: 'Claude Pro', price: 3000, cycle: 'monthly', billingDay: 24, frequency: 'high', domain: 'claude.ai' }
     ];
+
+    let subscriptions = [];
     let activeTab = 'home';
 
-    // カレンダー用の状態
+    // AI診断の状態管理
+    let aiState = { loading: false, result: null, error: null };
+
     const today = new Date();
     let currentYear = today.getFullYear();
     let currentMonth = today.getMonth();
 
-    // HTMLエスケープ（onerror等で文字列に埋め込む値の安全化）
+    // --- localStorage 永続化 ---
+    function loadData() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            subscriptions = parsed;
+            return;
+          }
+        }
+      } catch (e) { console.error('Load failed:', e); }
+      subscriptions = [...DEFAULT_DATA];
+      saveData();
+    }
+
+    function saveData() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(subscriptions)); }
+      catch (e) { console.error('Save failed:', e); }
+    }
+
+    function resetAllData() {
+      if (confirm('登録したサブスクをすべて削除します。\nよろしいですか？（この操作は取り消せません）')) {
+        subscriptions = [];
+        saveData();
+        render();
+      }
+    }
+
+    // --- AI診断関連 ---
+    function getAIRemainingCount() {
+      if (isProUser()) return Infinity;
+      const used = parseInt(localStorage.getItem(AI_COUNT_KEY) || '0', 10);
+      return Math.max(0, FREE_LIMIT - used);
+    }
+
+    function isProUser() {
+      return localStorage.getItem(PRO_KEY) === '1';
+    }
+
+    function incrementAICount() {
+      if (isProUser()) return;
+      const used = parseInt(localStorage.getItem(AI_COUNT_KEY) || '0', 10);
+      localStorage.setItem(AI_COUNT_KEY, String(used + 1));
+    }
+
+    function unlockPro() {
+      const password = prompt('Pro版のパスワードを入力してください');
+      if (password === null) return;
+      if (password.trim() === PRO_PASSWORD) {
+        localStorage.setItem(PRO_KEY, '1');
+        alert('🎉 Pro版が解除されました！\nAI診断を無制限でご利用いただけます。');
+        render();
+      } else {
+        alert('パスワードが正しくありません');
+      }
+    }
+
+    async function runAIAnalysis() {
+      if (subscriptions.length === 0) {
+        alert('サブスクを1つ以上登録してから診断してください');
+        return;
+      }
+
+      if (!isProUser() && getAIRemainingCount() <= 0) {
+        alert('無料診断の上限に達しました。Pro版にアップグレードしてください。');
+        return;
+      }
+
+      aiState = { loading: true, result: null, error: null };
+      render();
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscriptions }),
+        });
+
+        if (!response.ok) {
+          throw new Error('サーバーエラー (status: ' + response.status + ')');
+        }
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        aiState.result = data.advice;
+        incrementAICount();
+      } catch (error) {
+        aiState.error = error.message || '通信エラーが発生しました';
+      } finally {
+        aiState.loading = false;
+        render();
+      }
+    }
+
+    function clearAIResult() {
+      aiState = { loading: false, result: null, error: null };
+      render();
+    }
+
+    // --- HTMLエスケープ ---
     function escapeHtml(str) {
       return String(str)
         .replace(/&/g, '&amp;')
@@ -176,16 +302,14 @@
         .replace(/'/g, '&#39;');
     }
 
-    // 初期化
     document.addEventListener("DOMContentLoaded", () => {
+      loadData();
       activeTab = 'calendar';
       render();
     });
 
-    // --- 計算ロジック ---
     function getTotals() {
-      let monthly = 0;
-      let yearly = 0;
+      let monthly = 0, yearly = 0;
       subscriptions.forEach(sub => {
         if (sub.cycle === 'monthly') {
           monthly += sub.price;
@@ -204,24 +328,18 @@
         .reduce((acc, sub) => acc + (sub.cycle === 'monthly' ? sub.price : Math.round(sub.price / 12)), 0);
     }
 
-    // --- レンダリング処理 ---
     function render() {
       const main = document.getElementById('main-content');
-
       if (activeTab === 'home') main.innerHTML = getHomeHTML();
       else if (activeTab === 'calendar') main.innerHTML = getCalendarHTML();
       else if (activeTab === 'analysis') main.innerHTML = getAnalysisHTML();
 
       updateTabStyles();
-      // Lucideアイコン生成（ライブラリが未読込でもアプリ全体は止めない）
       if (typeof lucide !== 'undefined' && lucide.createIcons) {
         lucide.createIcons();
-      } else {
-        console.warn('Lucide library not loaded. Icons will not render.');
       }
     }
 
-    // アイコン生成ヘルパー（エスケープ強化）
     function getServiceIconHTML(name, domain, sizeClass = 'w-10 h-10', customClass = '') {
       const safeName = escapeHtml(name);
       const initial = escapeHtml(String(name || '?').charAt(0));
@@ -229,14 +347,11 @@
 
       if (!domain) return fallbackHTML;
 
-      // onerrorに直接outerHTMLを書くと文字列エスケープが壊れやすいので、
-      // data-fallback属性に格納して関数経由で差し替える方式に変更
       const safeDomain = escapeHtml(domain);
       const fallbackEscaped = fallbackHTML.replace(/"/g, '&quot;');
       return `<img src="https://www.google.com/s2/favicons?domain=${safeDomain}&sz=128" alt="${safeName}" class="${sizeClass} ${customClass} bg-white shadow-sm border border-gray-100 object-cover shrink-0" data-fallback="${fallbackEscaped}" onerror="handleIconError(this)">`;
     }
 
-    // アイコン読み込み失敗時の処理
     function handleIconError(imgEl) {
       imgEl.onerror = null;
       const fb = imgEl.getAttribute('data-fallback');
@@ -247,143 +362,128 @@
       }
     }
 
-    // 1. ホームタブHTML生成
+    // --- 1. ホームタブ ---
     function getHomeHTML() {
       const { monthlyTotal, yearlyTotal } = getTotals();
 
       let listHTML = '';
       if (subscriptions.length === 0) {
-        listHTML = `<div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">登録されているサービスがありません</div>`;
+        listHTML = `
+          <div class="text-center py-12 px-6 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+            <i data-lucide="package-open" class="w-10 h-10 mx-auto mb-3 text-gray-300"></i>
+            <p class="text-sm font-medium">まだ何も登録されていません</p>
+            <p class="text-xs mt-1 text-gray-400">右下の＋ボタンから追加できます</p>
+          </div>`;
       } else {
         listHTML = subscriptions.map(sub => `
-          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center group relative overflow-hidden">
-            <div class="flex items-center gap-3">
-              ${getServiceIconHTML(sub.name, sub.domain, 'w-10 h-10', 'rounded-xl')}
-              <div class="flex flex-col">
-                <span class="font-bold text-gray-800">${escapeHtml(sub.name)}</span>
-                <span class="text-xs text-gray-500 mt-0.5 flex items-center gap-1 font-medium">毎月 ${sub.billingDay}日 支払い</span>
+          <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center group relative overflow-hidden">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              ${getServiceIconHTML(sub.name, sub.domain, 'w-11 h-11', 'rounded-xl')}
+              <div class="flex flex-col min-w-0">
+                <span class="font-bold text-gray-800 text-[15px] truncate">${escapeHtml(sub.name)}</span>
+                <span class="text-xs text-gray-500 mt-0.5 font-medium">毎月 ${sub.billingDay}日 支払い</span>
               </div>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 shrink-0">
               <div class="text-right">
-                <span class="font-bold text-gray-900">¥${sub.price.toLocaleString()}</span>
+                <span class="font-black text-gray-900 text-base">¥${sub.price.toLocaleString()}</span>
                 <span class="text-xs text-gray-400 block font-medium">${sub.cycle === 'monthly' ? '/月' : '/年'}</span>
               </div>
-              <button onclick="deleteSubscription(${sub.id})" class="p-2 text-red-400 hover:bg-red-50 rounded-full transition-colors">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              <button onclick="deleteSubscription(${sub.id})" class="p-2.5 text-red-400 hover:bg-red-50 rounded-full transition-colors">
+                <i data-lucide="trash-2" class="w-[18px] h-[18px]"></i>
               </button>
             </div>
           </div>
         `).join('');
       }
 
+      const resetHTML = subscriptions.length > 0 ? `
+        <div class="pt-6 pb-4 text-center">
+          <button onclick="resetAllData()" class="text-xs text-gray-400 font-medium hover:text-red-500 transition-colors py-2 px-4">
+            すべてリセットする
+          </button>
+        </div>` : '';
+
       return `
         <div class="p-4 space-y-6 pb-28 fade-in-up">
-          <div class="bg-gray-900 rounded-3xl p-7 text-white shadow-xl shadow-gray-900/20 relative overflow-hidden">
+          <div class="bg-spc-navy rounded-3xl p-7 text-white shadow-xl shadow-spc relative overflow-hidden">
             <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-            <h2 class="text-gray-300 text-sm font-medium mb-1 relative z-10">今月の支払い予定合計</h2>
+            <h2 class="text-blue-100/80 text-sm font-medium mb-1 relative z-10">今月の支払い予定合計</h2>
             <div class="flex items-baseline gap-1 relative z-10">
-              <span class="text-4xl font-bold tracking-tight">¥${monthlyTotal.toLocaleString()}</span>
+              <span class="text-4xl font-black tracking-tight">¥${monthlyTotal.toLocaleString()}</span>
             </div>
-            <div class="mt-6 pt-5 border-t border-gray-700/50 flex justify-between items-center text-sm relative z-10">
-              <span class="text-gray-400 font-medium">年額換算</span>
-              <span class="font-bold text-white tracking-wide">¥${yearlyTotal.toLocaleString()}</span>
+            <div class="mt-6 pt-5 border-t border-white/15 flex justify-between items-center text-sm relative z-10">
+              <span class="text-blue-100/70 font-medium">年額換算</span>
+              <span class="font-black text-white tracking-wide">¥${yearlyTotal.toLocaleString()}</span>
             </div>
           </div>
+
           <div>
-            <h3 class="text-gray-900 font-bold mb-4 flex items-center gap-2 pl-1">
-              <i data-lucide="credit-card" class="w-4 h-4 text-gray-500"></i>
+            <h3 class="text-gray-900 font-bold mb-3 flex items-center gap-2 pl-1 text-[15px]">
+              <i data-lucide="credit-card" class="w-[18px] h-[18px] text-spc-navy"></i>
               登録中のサービス (${subscriptions.length})
             </h3>
-            <div class="space-y-3">${listHTML}</div>
+            <div class="space-y-2.5">${listHTML}</div>
+            ${resetHTML}
           </div>
         </div>
       `;
     }
 
-    // 2. カレンダータブHTML生成（表示改善版）
+    // --- 2. カレンダータブ ---
     function getCalendarHTML() {
       const { monthlyTotal } = getTotals();
       const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
       const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
-
-      // 曜日ヘッダー（土日に色を付けてカレンダーらしく）
       const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
 
       let html = `
         <div class="bg-white min-h-full pb-28 fade-in-up">
-          <!-- カレンダーヘッダー -->
           <div class="flex justify-between items-center px-6 pt-6 pb-3">
-            <button onclick="changeMonth(-1)" class="p-2 text-gray-500 hover:bg-gray-50 rounded-full transition-colors -ml-2">
+            <button onclick="changeMonth(-1)" class="p-2.5 text-gray-600 hover:bg-gray-50 rounded-full transition-colors -ml-2">
               <i data-lucide="chevron-left" class="w-5 h-5"></i>
             </button>
-            <h2 class="text-[17px] font-bold text-gray-900 tracking-tight">
-              ${currentYear}年${currentMonth + 1}月
-            </h2>
-            <button onclick="changeMonth(1)" class="p-2 text-gray-500 hover:bg-gray-50 rounded-full transition-colors -mr-2">
+            <h2 class="text-lg font-black text-gray-900 tracking-tight">${currentYear}年${currentMonth + 1}月</h2>
+            <button onclick="changeMonth(1)" class="p-2.5 text-gray-600 hover:bg-gray-50 rounded-full transition-colors -mr-2">
               <i data-lucide="chevron-right" class="w-5 h-5"></i>
             </button>
           </div>
 
-          <!-- カレンダーグリッド -->
           <div class="px-4 mb-2">
-            <!-- 曜日ヘッダー -->
             <div class="grid grid-cols-7 mb-2">
               ${dayLabels.map((d, i) => {
                 const color = i === 0 ? 'text-red-400' : (i === 6 ? 'text-blue-400' : 'text-gray-500');
-                return `<div class="text-center text-[11px] font-bold py-1 ${color}">${d}</div>`;
+                return `<div class="text-center text-xs font-bold py-1 ${color}">${d}</div>`;
               }).join('')}
             </div>
-
-            <!-- 日付セル -->
             <div class="grid grid-cols-7 gap-y-1">
       `;
 
-      // 空白セル（月のはじめ）
-      for (let i = 0; i < firstDayOfWeek; i++) {
-        html += `<div class="cal-cell"></div>`;
-      }
+      for (let i = 0; i < firstDayOfWeek; i++) html += `<div class="cal-cell"></div>`;
 
-      // 日付セル
       for (let day = 1; day <= daysInMonth; day++) {
         const subsToday = subscriptions.filter(s => s.billingDay === day);
         const dayOfWeek = (firstDayOfWeek + day - 1) % 7;
         const isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
 
-        // 日付ラベルの色決定
         let dayTextClass;
-        if (isToday) {
-          dayTextClass = 'bg-gray-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold';
-        } else if (subsToday.length > 0) {
-          dayTextClass = 'text-gray-900 text-xs font-bold';
-        } else if (dayOfWeek === 0) {
-          dayTextClass = 'text-red-300 text-xs font-medium';
-        } else if (dayOfWeek === 6) {
-          dayTextClass = 'text-blue-300 text-xs font-medium';
-        } else {
-          dayTextClass = 'text-gray-300 text-xs font-medium';
-        }
+        if (isToday) dayTextClass = 'bg-spc-navy text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shadow-md';
+        else if (subsToday.length > 0) dayTextClass = 'text-gray-900 text-xs font-black';
+        else if (dayOfWeek === 0) dayTextClass = 'text-red-300 text-xs font-bold';
+        else if (dayOfWeek === 6) dayTextClass = 'text-blue-300 text-xs font-bold';
+        else dayTextClass = 'text-gray-300 text-xs font-bold';
 
-        // アイコン表示エリア
         let subsHtml = '';
         if (subsToday.length === 1) {
-          // 1件：通常表示
-          subsHtml = `
-            <div class="flex justify-center">
-              ${getServiceIconHTML(subsToday[0].name, subsToday[0].domain, 'w-8 h-8', 'rounded-[10px] shadow-[0_2px_6px_rgba(0,0,0,0.08)]')}
-            </div>
-          `;
+          subsHtml = `<div class="flex justify-center">${getServiceIconHTML(subsToday[0].name, subsToday[0].domain, 'w-9 h-9', 'rounded-[10px] shadow-[0_2px_6px_rgba(0,0,0,0.1)]')}</div>`;
         } else if (subsToday.length >= 2) {
-          // 2件以上：アイコン＋件数バッジ
           subsHtml = `
             <div class="relative flex justify-center">
-              ${getServiceIconHTML(subsToday[0].name, subsToday[0].domain, 'w-8 h-8', 'rounded-[10px] shadow-[0_2px_6px_rgba(0,0,0,0.08)]')}
-              <div class="absolute -top-1 -right-1 bg-gray-900 text-white text-[9px] font-bold min-w-[16px] h-[16px] px-1 rounded-full flex items-center justify-center border-2 border-white">+${subsToday.length - 1}</div>
-            </div>
-          `;
+              ${getServiceIconHTML(subsToday[0].name, subsToday[0].domain, 'w-9 h-9', 'rounded-[10px] shadow-[0_2px_6px_rgba(0,0,0,0.1)]')}
+              <div class="absolute -top-1 -right-1 bg-spc-navy text-white text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center border-2 border-white">+${subsToday.length - 1}</div>
+            </div>`;
         } else {
-          // 0件：高さだけ確保
-          subsHtml = `<div class="w-8 h-8"></div>`;
+          subsHtml = `<div class="w-9 h-9"></div>`;
         }
 
         html += `
@@ -392,172 +492,274 @@
               <span class="${dayTextClass}">${day}</span>
             </div>
             ${subsHtml}
-          </div>
-        `;
+          </div>`;
       }
 
-      // 空白セル（月の終わり）
       const totalCells = firstDayOfWeek + daysInMonth;
       const remainingCells = (7 - (totalCells % 7)) % 7;
-      for (let i = 0; i < remainingCells; i++) {
-        html += `<div class="cal-cell"></div>`;
-      }
+      for (let i = 0; i < remainingCells; i++) html += `<div class="cal-cell"></div>`;
 
       html += `
             </div>
           </div>
 
-          <!-- 月合計 -->
-          <div class="mt-6 mx-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl">
+          <div class="mt-6 mx-4 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-100">
             <div class="flex justify-between items-baseline">
               <div>
                 <p class="text-[11px] text-gray-500 font-bold mb-1">${currentMonth + 1}月の支払い予定 (${subscriptions.length}件)</p>
                 <span class="font-bold text-gray-900 text-sm">${currentMonth + 1}月の合計</span>
               </div>
-              <span class="font-black text-2xl tracking-tight text-gray-900">¥${monthlyTotal.toLocaleString()}</span>
+              <span class="font-black text-2xl tracking-tight text-spc-navy">¥${monthlyTotal.toLocaleString()}</span>
             </div>
           </div>
 
-          <!-- 支払い予定リスト -->
           <div class="mt-4">
             <div class="space-y-0">
       `;
 
       const sortedSubs = [...subscriptions].sort((a, b) => a.billingDay - b.billingDay);
       if (sortedSubs.length === 0) {
-        html += `<div class="text-center py-10 text-gray-400 text-sm font-medium">予定はありません</div>`;
+        html += `<div class="text-center py-12 text-gray-400 text-sm font-medium">予定はありません</div>`;
       } else {
         html += sortedSubs.map(sub => `
-          <div class="flex justify-between items-center py-3.5 px-6 border-t border-gray-50 hover:bg-gray-50 transition-colors group">
-            <div class="flex items-center gap-4">
-              <span class="text-[11px] font-bold text-gray-400 w-8 tracking-tighter">${currentMonth + 1}/${sub.billingDay}</span>
-              ${getServiceIconHTML(sub.name, sub.domain, 'w-[34px] h-[34px]', 'rounded-[10px]')}
-              <span class="font-bold text-gray-900 text-[13px]">${escapeHtml(sub.name)}</span>
+          <div class="flex justify-between items-center py-4 px-6 border-t border-gray-50 hover:bg-gray-50 transition-colors group">
+            <div class="flex items-center gap-3.5 min-w-0 flex-1">
+              <span class="text-xs font-black text-gray-400 w-9 tracking-tight shrink-0">${currentMonth + 1}/${sub.billingDay}</span>
+              ${getServiceIconHTML(sub.name, sub.domain, 'w-9 h-9', 'rounded-[10px]')}
+              <span class="font-bold text-gray-900 text-sm truncate">${escapeHtml(sub.name)}</span>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-600 text-[13px]">¥${sub.price.toLocaleString()}</span>
-              <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-400"></i>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="font-bold text-gray-700 text-sm">¥${sub.price.toLocaleString()}</span>
+              <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300 group-hover:text-gray-400"></i>
             </div>
           </div>
         `).join('');
       }
 
-      html += `
-            </div>
-          </div>
-        </div>
-      `;
-
+      html += `</div></div></div>`;
       return html;
     }
 
-    // 3. 診断タブHTML生成
-    function getAnalysisHTML() {
-      const savings = getPotentialSavings();
-      let savingsHTML = '';
-      if (savings > 0) {
-        savingsHTML = `
-          <div class="bg-gray-900 rounded-3xl p-6 mb-6 shadow-xl shadow-gray-900/10">
+    // --- AIアドバイザーカード ---
+    function getAIAdvisorHTML() {
+      const isPro = isProUser();
+      const remaining = getAIRemainingCount();
+      const canUse = isPro || remaining > 0;
+
+      // ローディング中
+      if (aiState.loading) {
+        return `
+          <div class="bg-spc-navy rounded-3xl p-6 mb-6 shadow-xl shadow-spc">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="bg-white/15 p-2 rounded-xl"><i data-lucide="sparkles" class="w-5 h-5 text-white"></i></div>
+              <h3 class="text-white font-bold text-[15px]">ムダみっけ博士が考え中...</h3>
+            </div>
+            <div class="flex items-center justify-center py-6">
+              <div class="loading-spinner"></div>
+              <span class="text-white/80 text-sm ml-3 font-medium">少々お待ちください</span>
+            </div>
+          </div>`;
+      }
+
+      // 結果表示
+      if (aiState.result) {
+        return `
+          <div class="bg-spc-navy rounded-3xl p-6 mb-6 shadow-xl shadow-spc">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="bg-white/15 p-2 rounded-xl"><i data-lucide="sparkles" class="w-5 h-5 text-white"></i></div>
+                <h3 class="text-white font-bold text-[15px]">ムダみっけ博士の診断</h3>
+              </div>
+              <button onclick="clearAIResult()" class="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="bg-white/10 rounded-2xl p-4 text-white text-sm ai-result-text">${escapeHtml(aiState.result)}</div>
+            <div class="mt-4 flex justify-between items-center">
+              <span class="text-blue-100/70 text-xs font-medium">
+                ${isPro ? '✨ Pro版：無制限' : `残り ${remaining} 回`}
+              </span>
+              ${canUse ? `<button onclick="runAIAnalysis()" class="bg-white/15 hover:bg-white/25 text-white text-xs font-bold py-2 px-4 rounded-full transition-colors">もう一度</button>` : ''}
+            </div>
+          </div>`;
+      }
+
+      // エラー表示
+      if (aiState.error) {
+        return `
+          <div class="bg-red-50 rounded-3xl p-5 mb-6 border border-red-100">
             <div class="flex items-start gap-3">
-              <div class="bg-white/10 p-2.5 rounded-2xl text-white mt-1"><i data-lucide="trending-down" class="w-5 h-5"></i></div>
-              <div>
-                <h3 class="text-white font-bold mb-1">節約できるかも！</h3>
-                <p class="text-gray-400 text-xs mb-2 leading-relaxed">あまり使っていないサービスを解約すると、</p>
-                <div class="text-3xl font-black text-white tracking-tight">月々 ¥${savings.toLocaleString()}</div>
-                <p class="text-gray-400 text-xs mt-2 font-medium">の節約になります。</p>
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 mt-0.5 shrink-0"></i>
+              <div class="flex-1">
+                <h3 class="text-red-800 font-bold text-sm mb-1">診断に失敗しました</h3>
+                <p class="text-red-700 text-xs leading-relaxed">${escapeHtml(aiState.error)}</p>
+                <button onclick="clearAIResult()" class="mt-3 text-red-600 text-xs font-bold hover:underline">閉じる</button>
               </div>
             </div>
           </div>`;
-      } else {
+      }
+
+      // 無料回数を使い切った
+      if (!canUse) {
+        return `
+          <div class="bg-gradient-to-br from-spc-navy to-spc-navy-dark rounded-3xl p-6 mb-6 shadow-xl shadow-spc text-white">
+            <div class="flex items-start gap-3 mb-4">
+              <div class="bg-white/15 p-2.5 rounded-2xl"><i data-lucide="lock" class="w-5 h-5"></i></div>
+              <div class="flex-1">
+                <h3 class="font-bold mb-1 text-[15px]">Pro版にアップグレード</h3>
+                <p class="text-blue-100/80 text-xs leading-relaxed">無料診断（3回）を使い切りました。Pro版なら無制限でAI診断が受けられます。</p>
+              </div>
+            </div>
+            <button onclick="unlockPro()" class="w-full bg-white text-spc-navy font-bold py-3.5 rounded-xl hover:bg-blue-50 transition-colors text-sm">
+              パスワードを入力する
+            </button>
+          </div>`;
+      }
+
+      // 初期状態
+      return `
+        <div class="bg-spc-navy rounded-3xl p-6 mb-6 shadow-xl shadow-spc">
+          <div class="flex items-start gap-3 mb-4">
+            <div class="bg-white/15 p-2.5 rounded-2xl text-white">
+              <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-white font-bold mb-1 text-[15px]">AIムダみっけ診断</h3>
+              <p class="text-blue-100/80 text-xs leading-relaxed">あなたのサブスクをAIが分析して、節約のチャンスをみっけます。</p>
+            </div>
+          </div>
+          <button onclick="runAIAnalysis()" class="w-full bg-white text-spc-navy font-bold py-3.5 rounded-xl hover:bg-blue-50 active:scale-95 transition-all text-sm flex items-center justify-center gap-2">
+            <i data-lucide="zap" class="w-4 h-4"></i>
+            AI診断を受ける
+            ${isPro ? '<span class="text-spc-navy/60 text-xs font-medium ml-1">(無制限)</span>' : `<span class="text-spc-navy/60 text-xs font-medium ml-1">(残り ${remaining} 回)</span>`}
+          </button>
+        </div>`;
+    }
+
+    // --- 3. 診断タブ ---
+    function getAnalysisHTML() {
+      const aiHTML = getAIAdvisorHTML();
+      const savings = getPotentialSavings();
+
+      let savingsHTML = '';
+      if (savings > 0) {
+        savingsHTML = `
+          <div class="bg-amber-50 rounded-3xl p-5 mb-6 border border-amber-100">
+            <div class="flex items-start gap-3">
+              <div class="bg-amber-400 p-2 rounded-xl text-white shrink-0">
+                <i data-lucide="trending-down" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1">
+                <h3 class="text-amber-900 font-bold text-sm mb-1">節約のチャンス</h3>
+                <p class="text-amber-800/80 text-xs mb-2">あまり使ってないサービスを解約すると</p>
+                <div class="text-2xl font-black text-amber-900 tracking-tight">月々 ¥${savings.toLocaleString()}</div>
+                <p class="text-amber-800/80 text-xs mt-1 font-medium">の節約になります</p>
+              </div>
+            </div>
+          </div>`;
+      } else if (subscriptions.length > 0) {
         savingsHTML = `
           <div class="bg-green-50 rounded-3xl p-5 mb-6 flex items-center gap-3 border border-green-100">
-            <i data-lucide="check-circle-2" class="w-6 h-6 text-green-500"></i>
-            <span class="text-green-800 font-bold text-sm">すべてのサービスを活用できています！</span>
+            <i data-lucide="check-circle-2" class="w-6 h-6 text-green-500 shrink-0"></i>
+            <span class="text-green-800 font-bold text-sm">すべてのサービスをしっかり活用できています！</span>
           </div>`;
       }
 
       const lowSubs = subscriptions.filter(s => s.frequency === 'low');
+      const mediumSubs = subscriptions.filter(s => s.frequency === 'medium');
       const highSubs = subscriptions.filter(s => s.frequency === 'high');
 
       let lowHTML = lowSubs.length === 0 ? '' : `
-        <div class="space-y-3">
-          <h4 class="text-[10px] font-bold text-red-500 uppercase tracking-widest pl-1">見直し推奨 (あまり使っていない)</h4>
+        <div class="space-y-2.5">
+          <h4 class="text-[11px] font-black text-red-500 uppercase tracking-widest pl-1">見直し推奨 (あまり使ってない)</h4>
           ${lowSubs.map(sub => `
-            <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-red-50 flex justify-between items-center opacity-90">
-              <div class="flex items-center gap-3">
-                ${getServiceIconHTML(sub.name, sub.domain, 'w-8 h-8', 'rounded-[10px]')}
-                <span class="font-bold text-gray-800 text-sm">${escapeHtml(sub.name)}</span>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-red-50 flex justify-between items-center">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                ${getServiceIconHTML(sub.name, sub.domain, 'w-9 h-9', 'rounded-[10px]')}
+                <span class="font-bold text-gray-800 text-sm truncate">${escapeHtml(sub.name)}</span>
               </div>
-              <span class="text-red-500 font-bold text-sm">¥${sub.price.toLocaleString()}</span>
+              <span class="text-red-500 font-black text-sm shrink-0">¥${sub.price.toLocaleString()}</span>
+            </div>
+          `).join('')}
+        </div>`;
+
+      let mediumHTML = mediumSubs.length === 0 ? '' : `
+        <div class="space-y-2.5 pt-5">
+          <h4 class="text-[11px] font-black text-amber-500 uppercase tracking-widest pl-1">様子見 (たまに使う)</h4>
+          ${mediumSubs.map(sub => `
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-amber-50 flex justify-between items-center">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                ${getServiceIconHTML(sub.name, sub.domain, 'w-9 h-9', 'rounded-[10px]')}
+                <span class="font-bold text-gray-800 text-sm truncate">${escapeHtml(sub.name)}</span>
+              </div>
+              <span class="text-amber-600 font-bold text-sm shrink-0">¥${sub.price.toLocaleString()}</span>
             </div>
           `).join('')}
         </div>`;
 
       let highHTML = highSubs.length === 0 ? '' : `
-        <div class="space-y-3 pt-6">
-          <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">活用中 (よく使っている)</h4>
+        <div class="space-y-2.5 pt-5">
+          <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">活用中 (よく使ってる)</h4>
           ${highSubs.map(sub => `
-            <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
-              <div class="flex items-center gap-3">
-                ${getServiceIconHTML(sub.name, sub.domain, 'w-8 h-8', 'rounded-[10px]')}
-                <span class="font-bold text-gray-700 text-sm">${escapeHtml(sub.name)}</span>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                ${getServiceIconHTML(sub.name, sub.domain, 'w-9 h-9', 'rounded-[10px]')}
+                <span class="font-bold text-gray-700 text-sm truncate">${escapeHtml(sub.name)}</span>
               </div>
-              <span class="text-gray-500 font-medium text-sm">¥${sub.price.toLocaleString()}</span>
+              <span class="text-gray-600 font-bold text-sm shrink-0">¥${sub.price.toLocaleString()}</span>
             </div>
           `).join('')}
         </div>`;
 
+      const emptyState = subscriptions.length === 0 ? `
+        <div class="text-center py-12 px-6 bg-white rounded-2xl border border-dashed border-gray-200">
+          <i data-lucide="search" class="w-10 h-10 mx-auto mb-3 text-gray-300"></i>
+          <p class="text-sm font-medium text-gray-500">サブスクを登録すると診断できます</p>
+        </div>` : '';
+
       return `
         <div class="p-4 space-y-2 pb-28 fade-in-up">
-          <h2 class="text-xl font-black text-gray-900 mb-6 pl-1 tracking-tight">利用状況の診断</h2>
+          <h2 class="text-xl font-black text-gray-900 mb-5 pl-1 tracking-tight">AI診断</h2>
+          ${aiHTML}
+          ${emptyState}
           ${savingsHTML}
           <div class="pt-2">
             ${lowHTML}
+            ${mediumHTML}
             ${highHTML}
           </div>
         </div>
       `;
     }
 
-    // --- 操作ロジック ---
-    function switchTab(tab) {
-      activeTab = tab;
-      render();
-    }
+    // --- 操作 ---
+    function switchTab(tab) { activeTab = tab; render(); }
 
     function changeMonth(delta) {
       currentMonth += delta;
-      if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-      } else if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      }
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      else if (currentMonth > 11) { currentMonth = 0; currentYear++; }
       render();
     }
 
     function updateTabStyles() {
-      const tabs = ['home', 'calendar', 'analysis'];
-      tabs.forEach(t => {
+      ['home', 'calendar', 'analysis'].forEach(t => {
         const el = document.getElementById(`tab-${t}`);
         if (!el) return;
-        if (t === activeTab) {
-          el.className = 'flex flex-col items-center justify-center w-full h-full transition-colors text-gray-900';
-        } else {
-          el.className = 'flex flex-col items-center justify-center w-full h-full transition-colors text-gray-400 hover:text-gray-600';
-        }
+        el.className = t === activeTab
+          ? 'flex flex-col items-center justify-center w-full h-full transition-colors text-spc-navy'
+          : 'flex flex-col items-center justify-center w-full h-full transition-colors text-gray-400 hover:text-gray-600';
       });
     }
 
     function deleteSubscription(id) {
       if(confirm('このサブスクを削除しますか？')){
         subscriptions = subscriptions.filter(sub => sub.id !== id);
+        saveData();
         render();
       }
     }
 
-    // --- モーダル・フォームロジック ---
     function openModal() {
       const modal = document.getElementById('add-modal');
       modal.classList.remove('hidden');
@@ -574,46 +776,35 @@
 
     function setFrequency(freq) {
       document.getElementById('input-frequency').value = freq;
-
-      const activeClass = 'bg-gray-900 border-gray-900 text-white';
+      const activeClass = 'bg-spc-navy border-spc-navy text-white';
       const inactiveClass = 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50';
-
       ['high', 'medium', 'low'].forEach(f => {
         const btn = document.getElementById(`btn-freq-${f}`);
-        btn.className = `p-2 rounded-xl text-sm font-medium border transition-all ${f === freq ? activeClass : inactiveClass}`;
+        btn.className = `p-2.5 rounded-xl text-sm font-bold border transition-all ${f === freq ? activeClass : inactiveClass}`;
       });
     }
 
     function handleAdd(e) {
       e.preventDefault();
-
       const name = document.getElementById('input-name').value;
       const url = document.getElementById('input-url').value;
       const price = parseInt(document.getElementById('input-price').value, 10);
       const billingDay = parseInt(document.getElementById('input-billing-day').value, 10);
       const frequency = document.getElementById('input-frequency').value;
 
-      // ドメイン抽出
       let domain = '';
       if (url) {
         try {
           const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
           domain = urlObj.hostname;
-        } catch (err) {
-          console.error("Invalid URL");
-        }
+        } catch (err) { console.error("Invalid URL"); }
       }
 
       subscriptions.push({
-        id: Date.now(),
-        name,
-        price,
-        cycle: 'monthly',
-        billingDay,
-        frequency,
-        domain
+        id: Date.now(), name, price, cycle: 'monthly', billingDay, frequency, domain
       });
 
+      saveData();
       closeModal();
       render();
     }
